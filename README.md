@@ -1,11 +1,13 @@
 # Yet Another Reverse Shell (YARS)
 
+![](showcase.mp4)
+
 - Made in C
 - Tiny
 - Simple
-- Fast-forward shell upgrade
-- CTF friendly
-- Fully interactive
+- Fast-forward shell upgrade (TODO...)
+- CTF friendly (TODO...)
+- Fully interactive (TODO...)
 
 # Install
 ## Build

@@ -1,20 +1,18 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
 #include <poll.h>
 
 #include "argparse/argparse.h"
+#include "socket/socket.h"
 
 typedef struct {
     char* port;
-    char* address; 
+    char* address;
     bool  help;
 } Args;
 
@@ -29,7 +27,7 @@ int main(int argc, char** argv) {
         NEW_CLI_ARG(STRING, &args.port),
     };
 
-    ret = parse(
+     ret = parse(
         argc,
         argv,
         cliElements,
@@ -46,88 +44,84 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    struct addrinfo hints;
+    struct sockaddr_storage clientAddr;
     struct addrinfo *servInfo;
 
-    memset(&hints, 0, sizeof(hints));
+    socklen_t clientAddrSize = sizeof(clientAddr);
 
-    hints.ai_family     = AF_INET;
-    hints.ai_socktype   = SOCK_STREAM;
-    hints.ai_flags      = AI_PASSIVE;
-
-    ret = getaddrinfo(
+    ret = sockInit(
         args.address,
         args.port,
-        &hints,
+        AF_INET,
+        SOCK_STREAM,
+        AI_PASSIVE,
         &servInfo
     );
 
     if (ret != 0) {
-        perror("ERROR on getaddrinfo\n");
+        perror("ERROR on sockInit\n");
         return ret;
     }
 
-    int s = socket(servInfo->ai_family, servInfo->ai_socktype, servInfo->ai_protocol);
+    int serverFd = createSocketAndBind(servInfo);
 
-    if (s == -1) {
-        perror("ERROR on socket\n");
-        return s;
+    if (serverFd == -1) {
+        perror("ERROR on createSocketAndBind\n");
+        return serverFd;
     }
 
-    ret = bind(s, servInfo->ai_addr, servInfo->ai_addrlen);
+    ret = sockSetSockOpt(serverFd, SOL_SOCKET, SO_REUSEADDR, 1);
 
     if (ret != 0) {
-        perror("ERROR on bind\n");
+        perror("ERROR on sockSetSockOpt\n");
         return ret;
     }
 
-    {
-        int yes = 1;
-        ret = setsockopt(
-            s,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-            &yes,
-            sizeof(yes)
-        );
-    }
+    ret = sockListen(serverFd, -1);
 
     if (ret != 0) {
-        perror("ERROR on setsockopt\n");
+        perror("ERROR on sockListen\n");
         return ret;
     }
 
-    ret = listen(s, -1); 
+    int clientFd = sockAccept(serverFd, &clientAddr, &clientAddrSize);
 
-    if (ret != 0) {
+    if (clientFd == -1) {
         perror("ERROR on listen\n");
         return ret;
     }
 
-    struct sockaddr_storage clientAddr;
-    socklen_t clientAddrSize = sizeof(clientAddr);
-    int sClient = accept(s, (struct sockaddr*)&clientAddr, &clientAddrSize); 
-
-    if (sClient == -1) {
-        perror("ERROR on listen\n");
-        return ret;
-    }
-
-    char* ipv4 = inet_ntoa(((struct sockaddr_in*)&clientAddr)->sin_addr);
+    char* ipv4 = toIPv4(&clientAddr);
     printf("NEW CONNECTION FROM %s\n", ipv4);
 
+    struct pollfd fds[2];
+    fds[0].fd       = STDIN_FILENO;
+    fds[0].events   = POLLIN;
+
+    fds[1].fd       = clientFd;
+    fds[1].events   = POLLIN;
+
     char buf[1024];
+
     while (1) {
-        memset(buf, 0, 1024);
+        ret = poll(fds, 2, -1);
+        if (ret <= 0) continue;
 
-        fgets(buf, 1024, stdin);
-        send(sClient, buf, 1024, 0);
+        if (fds[0].revents & POLLIN) {
+            memset(buf, 0, 1024);
+            fgets(buf, 1024, stdin);
+            send(clientFd, buf, 1024, 0);
+        }
 
-        memset(buf, 0, 1024);
-
-        recv(sClient, buf, 1024, 0);
-        printf("%s", buf);
+        if (fds[1].revents & POLLIN) {
+            memset(buf, 0, 1024);
+            recv(clientFd, buf, 1024, 0);
+            printf("%s", buf);
+        }
     }
+
+    close(clientFd);
+    close(serverFd);
 
     freeaddrinfo(servInfo);
 

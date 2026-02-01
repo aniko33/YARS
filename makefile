@@ -1,8 +1,15 @@
-target/yars: target/main.o target/argparse.o
-	$(CC) target/*.o -o target/yars
+CFLAGS = -Wall -Wextra
+
+all: target/yars
+
+target/yars: target/main.o target/argparse.o target/socket.o
+	$(CC) $(CFLAGS) -o target/yars target/*.o
 
 target/argparse.o: src/argparse/argparse.c
-	$(CC) -c src/argparse/argparse.c -o target/argparse.o
+	$(CC) -c $(CFLAGS) -o target/argparse.o src/argparse/argparse.c
+
+target/socket.o: src/socket/socket.c
+	$(CC) -c $(CFLAGS) -o target/socket.o src/socket/socket.c
 
 target/main.o: src/main.c
-	$(CC) -c src/main.c -o target/main.o
+	$(CC) -c $(CFLAGS) -o target/main.o src/main.c
