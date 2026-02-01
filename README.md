@@ -1,6 +1,6 @@
 # Yet Another Reverse Shell (YARS)
 
-![](showcase.mp4)
+https://github.com/user-attachments/assets/1401a2c2-60cc-4fcd-b9c2-9b9e3ea6f83b
 
 - Made in C
 - Tiny
@@ -11,6 +11,7 @@
 
 # Install
 ## Build
+
 ```
 make all
 ```
