@@ -3,12 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/socket.h>
-
 #include <poll.h>
 
 #include "argparse/argparse.h"
 #include "socket/socket.h"
+#include "term/term.h"
 
 typedef struct {
     char* port;
@@ -107,16 +106,18 @@ int main(int argc, char** argv) {
         ret = poll(fds, 2, -1);
         if (ret <= 0) continue;
 
+        int n;
         if (fds[0].revents & POLLIN) {
             memset(buf, 0, 1024);
-            fgets(buf, 1024, stdin);
-            send(clientFd, buf, 1024, 0);
+            n = read(STDIN_FILENO, buf, 1024);
+            send(clientFd, buf, n, 0);
         }
 
         if (fds[1].revents & POLLIN) {
             memset(buf, 0, 1024);
-            recv(clientFd, buf, 1024, 0);
-            printf("%s", buf);
+            n = recv(clientFd, buf, 1024, 0);
+            write(STDOUT_FILENO, buf, n);
+            fflush(stdout);
         }
     }
 

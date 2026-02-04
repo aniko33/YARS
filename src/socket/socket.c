@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 
 #include <sys/types.h>
@@ -31,14 +30,12 @@ int createSocketAndBind(struct addrinfo *servAddr) {
     int s = socket(servAddr->ai_family, servAddr->ai_socktype, servAddr->ai_protocol);
 
     if (s == -1) {
-        perror("ERROR on socket\n");
         return s;
     }
 
     ret = bind(s, servAddr->ai_addr, servAddr->ai_addrlen);
 
     if (ret != 0) {
-        perror("ERROR on bind\n");
         return ret;
     }
 
@@ -46,19 +43,13 @@ int createSocketAndBind(struct addrinfo *servAddr) {
 }
 
 int sockSetSockOpt(int sockFd, int level, int optname, int enable) {
-    ret = setsockopt(
+    return setsockopt(
         sockFd,
         level,
         optname,
         &enable,
         sizeof(enable)
     );
-
-    if (ret != 0) {
-        perror("ERROR on setsockopt\n");
-    }
-
-    return ret;
 }
 
 int sockListen(int sockFd, int backlog) {
