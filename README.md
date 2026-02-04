@@ -1,6 +1,6 @@
 # Yet Another Reverse Shell (YARS)
 
-https://github.com/user-attachments/assets/1401a2c2-60cc-4fcd-b9c2-9b9e3ea6f83b
+![showcase](https://github.com/user-attachments/assets/93989010-fd44-4ecd-be9b-c77655ca3edb)
 
 > [!IMPORTANT]
 > This project is for education purposes only, so it will not be maintained for a long-term period
